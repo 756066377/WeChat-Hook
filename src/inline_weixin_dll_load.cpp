@@ -202,7 +202,7 @@ void Evt_WeixinLoad()
     }
 #ifdef _DEBUG
     //xLog 日志
-    Hook_Call(WeixinDll_Offset(0x108678), 5, hook::MyCallHandler_xLog);
+    Hook_Call(WeixinDll_Offset(0x118818), 5, hook::MyCallHandler_xLog);	// 4.1.15.56（旧 0x108678）
 #endif
     
 

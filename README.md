@@ -25,7 +25,7 @@ https://github.com/aixed/wechat_control
 
 ## 版本说明
 
-- 目标微信版本：`4.1.10.27`
+- 目标微信版本：`4.1.15.56`
 - 架构：Windows x64
 - DLL 名称：`version.dll`
 - 默认监听地址：`0.0.0.0:30001`
@@ -34,13 +34,16 @@ https://github.com/aixed/wechat_control
 ## 使用方式
 
 1. 编译或从 Release 下载生成后的 `version.dll`。
-2. 将 `version.dll` 放到微信安装目录下，我这里是：
+2. 新版微信（4.1.15+）不再从安装目录加载 version.dll 代理（version.dll 属于 KnownDLLs，固定解析到 system32），必须通过加载器注入启动：
 
 ```text
-C:\Program Files\Tencent\Weixin
+wxinject.exe "D:\Program Files\Tencent\Weixin\Weixin.exe" "D:\Program Files\Tencent\Weixin\version.dll"
 ```
 
-3. 启动微信。DLL 加载后会自动启动 HTTP 服务，默认端口是 `30001`。
+加载器会挂起启动微信、等待 Weixin.dll 加载后注入并放行。version.dll 放到微信安装目录下（我这里是 `D:\Program Files\Tencent\Weixin`）。
+注意：微信启动时会自动升级，升级后目录会被替换，需用 `防止微信自动更新` 目录下的脚本屏蔽更新，并重新对齐偏移。
+
+3. 启动微信。DLL 注入后会自动启动 HTTP 服务，默认端口是 `30001`。
 4. 使用 Postman 或其他 HTTP 客户端调用接口，默认基地址：
 
 ```text

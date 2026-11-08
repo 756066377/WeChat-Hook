@@ -131,21 +131,24 @@ namespace WeixinSend
     {
         uint64_t pad0[22] = { 0 };          // 0x000
         WeixinString receiver;              // 0x0B0
-        uint64_t pad1[1] = { 0 };           // 0x0D0
-        uint64_t type;                      // 0x0D8
-        uint64_t pad2[21] = { 0 };          // 0x0E0
-        uint64_t msg_len;                   // 0x188
-        uint64_t pad3[163] = { 0 };         // 0x190
-        WeixinString uuid;                  // 0x6A8
-        uint64_t pad4[8] = { 0 };           // 0x6C8
-        WeixinString content;               // 0x708
-        WeixinString atlist;                // 0x728
+        uint64_t pad1[9] = { 0 };           // 0x0D0  (4.1.15.56: 0xD8 起插入 0x40)
+        uint64_t type;                      // 0x118  (旧 0xD8)
+        uint64_t pad2[21] = { 0 };          // 0x120
+        uint64_t msg_len;                   // 0x1C8  (旧 0x188)
+        uint64_t pad3[165] = { 0 };         // 0x1D0
+        WeixinString uuid;                  // 0x6F8  (旧 0x6A8)
+        uint64_t pad4[8] = { 0 };          // 0x718
+        WeixinString content;               // 0x758  (旧 0x708)
+        WeixinString atlist;                // 0x778  (旧 0x728)
     };
 
     static_assert(sizeof(WeixinString) == 0x20);
     static_assert(offsetof(TextMessage, receiver) == 0x0B0);
-    static_assert(offsetof(TextMessage, uuid) == 0x6A8);
-    static_assert(offsetof(TextMessage, content) == 0x708);
+    static_assert(offsetof(TextMessage, type) == 0x118);
+    static_assert(offsetof(TextMessage, msg_len) == 0x1C8);
+    static_assert(offsetof(TextMessage, uuid) == 0x6F8);
+    static_assert(offsetof(TextMessage, content) == 0x758);
+    static_assert(offsetof(TextMessage, atlist) == 0x778);
 
     struct UnknownBlock
     {
@@ -255,45 +258,45 @@ namespace WeixinSend
         *(uint64_t*)(msgBuf + 0xA8 / 8) = 0x0000000100000000;
         *(uint64_t*)(msgBuf + 0xB0 / 8) = 0x0000000700000000;
 
-        // === wxid ===
+        // === wxid === (msg+0xB0, 4.1.15.56 未变)
         SetWeixinString((WeixinString*)(msgBuf + 0xC0 / 8), wxid);
         *(uint64_t*)(msgBuf + 0xD0 / 8) = wxid.size();
         *(uint64_t*)(msgBuf + 0xD8 / 8) = CalcWxCapacity(wxid.size());
 
-        //文件类型 3= png图片   47 = gif
-        *(uint64_t*)(msgBuf + 0xE8 / 8) = 3;        
+        //文件类型 3= png图片   47 = gif  (msg+0xD8 -> 4.1.15.56 msg+0x118)
+        *(uint64_t*)(msgBuf + 0x128 / 8) = 3;
 
 
-        // === 图片路径 ===
-        SetWeixinStringU((WeixinStringUnicode*)(msgBuf + 0xF0 / 8), imgPath);
-        *(uint64_t*)(msgBuf + 0x100 / 8) = imgPath.size(); // 图片路径长度
-        *(uint64_t*)(msgBuf + 0x108 / 8) = CalcWxCapacity(imgPath.size());
+        // === 图片路径 === (msg+0xE0 -> 4.1.15.56 msg+0x120)
+        SetWeixinStringU((WeixinStringUnicode*)(msgBuf + 0x130 / 8), imgPath);
+        *(uint64_t*)(msgBuf + 0x140 / 8) = imgPath.size(); // 图片路径长度
+        *(uint64_t*)(msgBuf + 0x148 / 8) = CalcWxCapacity(imgPath.size());
 
 
-        *(uint64_t*)(msgBuf + 0x130 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x150 / 8) = 7;
         *(uint64_t*)(msgBuf + 0x170 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x190 / 8) = 7;
+        *(uint64_t*)(msgBuf + 0x1B0 / 8) = 0xF;
 
-        //0x178 = filename
-		//0x188 & 0x190= filename length & capacity
+        //0x1B0 = filename
+        //0x1C8 & 0x1D0 = filename length & capacity
 
-        *(uint64_t*)(msgBuf + 0x198 / 8) = filesize;         //图片大小
-        *(uint64_t*)(msgBuf + 0x1B8 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x1D8 / 8) = filesize;         //图片大小 (msg+0x188 -> 0x1C8)
+        *(uint64_t*)(msgBuf + 0x1F8 / 8) = 0xF;
 
-        *(uint64_t*)(msgBuf + 0x668 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x688 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x6B0 / 8) = 0xF;
-        SetWeixinString((WeixinString*)(msgBuf + 0x6B8 / 8), guid);
-        *(uint64_t*)(msgBuf + 0x6C8 / 8) = guid.size();      // length = 36
-        *(uint64_t*)(msgBuf + 0x6D0 / 8) = CalcWxCapacity(guid.size());
+        *(uint64_t*)(msgBuf + 0x6B8 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x6D8 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x700 / 8) = 0xF;
+        SetWeixinString((WeixinString*)(msgBuf + 0x708 / 8), guid);
+        *(uint64_t*)(msgBuf + 0x718 / 8) = guid.size();      // length = 36
+        *(uint64_t*)(msgBuf + 0x720 / 8) = CalcWxCapacity(guid.size());
 
 
-        *(uint64_t*)(msgBuf + 0x6F0 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x710 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x738 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x740 / 8) = 0xF;
         *(uint64_t*)(msgBuf + 0x760 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x780 / 8) = 0xF;
-        *(uint64_t*)(msgBuf + 0x7A0 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x788 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x7B0 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x7D0 / 8) = 0xF;
+        *(uint64_t*)(msgBuf + 0x7F0 / 8) = 0xF;
     }
 
     void BuildSendParam2_Image(uint64_t* out)
@@ -385,7 +388,7 @@ namespace WeixinSend
     {
         uintptr_t WeixinDLL_baseAddr = GetWeixinDllBase();
 
-        uint64_t* msgStruct = (uint64_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 0x7C0);
+        uint64_t* msgStruct = (uint64_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 0x820);	// 4.1.15.56 结构体增长 (+0x50)，旧 0x7C0
         if (!msgStruct) {
             return;
         }

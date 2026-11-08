@@ -1,3 +1,7 @@
+20261108
+1.适配微信 4.1.15.56：全部偏移重新定位（版本对照逆向），结构体布局更新（0xD8 起 +0x40，0x6A8 起 +0x50）
+2.FORWARD_XML_CALL 在 4.1.15.56 已移除，ForwardXMLMsg 接口直接返回失败
+3.新增加载器 wxinject.exe：新版微信不再从目录加载 version.dll 代理（KnownDLLs），需注入方式加载
 20261105
 1.新增视频号分享URL取exportid接口
 

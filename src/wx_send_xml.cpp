@@ -535,6 +535,11 @@ namespace WeixinSendXML
             return false;
         }
 
+        // 4.1.15.56：转发调用点已被微信移除，接口直接返回失败
+        if (Offsets::FORWARD_XML_CALL == 0) {
+            return false;
+        }
+
         // 提取XML字段
         XmlFields fields = ExtractXmlFields(xml, xmlType);
 
@@ -638,7 +643,7 @@ namespace WeixinSendXML
             Memory::Write<uint64_t>(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(rcx) + 0x38), reinterpret_cast<uintptr_t>(paramPtr));
 
             // 设置rdx参数
-            Memory::Write<uint64_t>(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(rdx) + 0x20), g_weixinBase + 0x367849);
+            Memory::Write<uint64_t>(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(rdx) + 0x20), g_weixinBase + 0x3D0549);	// 4.1.15.56（旧 0x367849）
 
             // 调用转发函数
             WeixinCall forwardCall = (WeixinCall)(g_weixinBase + Offsets::FORWARD_XML_CALL);
