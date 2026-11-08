@@ -1,6 +1,8 @@
 # WeChat-Hook
  
-Windows 微信 Hook DLL，当前版本以 `version.dll` 代理方式加载，在微信主进程中启动本地 HTTP 服务，提供消息发送、XML 转发、图片解码、个人资料读取和数据库查询接口。
+Windows 微信 Hook DLL，通过加载器注入微信主进程（`version.dll` 代理方式在微信 4.1.15+ 已失效），在微信主进程中启动本地 HTTP 服务，提供消息发送、图片解码、个人资料读取和数据库查询接口。
+
+**对接文档（面向接入开发者）：[对接文档.md](./对接文档.md)**
 
 微信控制器： 
 https://github.com/aixed/wechat_control
@@ -58,15 +60,17 @@ postman/WeChat-Hook.postman_collection.json
 
 ## 项目结构
 
+- `wxinject.cpp`：加载器源码，挂起启动微信、等待 `Weixin.dll` 加载后注入 hook 并放行（编译为 `wxinject.exe`）。
 - `dllmain.cpp`：DLL 入口，解析启动参数，加载真实系统 `version.dll`，只在微信主进程初始化。
 - `src/version_proxy.cpp`：代理系统 `version.dll` 导出函数。
-- `src/inline_weixin_dll_load.cpp`：等待并初始化 `Weixin.dll` 相关逻辑，启动 HTTP 服务。
+- `src/inline_weixin_dll_load.cpp`：初始化 `Weixin.dll` 相关逻辑，应用防撤回 patch，启动 HTTP 服务。
 - `src/http_routes.cpp`：HTTP 路由注册入口。
 - `src/SendTextMsg.cpp`：文本发送和图片解码接口。
 - `src/SendImageMsg.cpp`：图片发送接口。
-- `src/ForwardXMLMsg.cpp`：XML 消息转发接口。
+- `src/ForwardXMLMsg.cpp`：XML 消息转发接口（4.1.15.56 下接口返回失败）。
 - `src/GetSelfProfile.cpp`：当前账号资料接口。
 - `src/QueryDB.cpp`、`xdb/`：微信进程内 SQLite 数据库查询接口。
+- `include/global.h`：全部偏移定义（按微信版本维护）。
 
 ## 编译
 
@@ -88,9 +92,15 @@ Debug 输出：
 x64\Debug\version.dll
 ```
 
+加载器单独编译：
+
+```powershell
+cl /nologo /O2 /EHsc /D_UNICODE /DUNICODE wxinject.cpp /Fe:wxinject.exe
+```
+
 ## 加载与启动参数
 
-项目生成的 DLL 文件名为 `version.dll`。加载后会代理系统 `version.dll` 的导出函数，并在微信主进程内初始化 Hook 与 HTTP 服务。
+项目生成的 DLL 文件名为 `version.dll`。由 `wxinject.exe` 注入微信主进程后，会代理系统 `version.dll` 的导出函数并初始化 Hook 与 HTTP 服务。
 
 支持的命令行参数：
 
@@ -169,6 +179,8 @@ curl -X POST http://127.0.0.1:30001/SendTextMsg \
 ### 转发 XML 消息
 
 `POST /ForwardXMLMsg`
+
+> ❌ **4.1.15.56 不可用**：原调用点为微信内部函数的中部标签，新版已删除对应字段处理逻辑，接口恒返回失败。
 
 请求：
 
@@ -314,4 +326,5 @@ curl -X POST http://127.0.0.1:30001/SendTextMsg \
 
 ## 备注
 
-本项目依赖微信内部偏移，微信升级后需要重新核对偏移和调用约定。当前 README 与 Release DLL 对应微信 `4.1.10.27`。
+本项目依赖微信内部偏移，微信升级后需要重新核对偏移和调用约定。当前 README 与 Release DLL 对应微信 `4.1.15.56`。
+`4.1.10.27` 及更早版本的偏移见 git 历史（`include/global.h` 的上一版）。
